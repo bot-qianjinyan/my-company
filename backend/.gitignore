@@ -6,3 +6,4 @@ pgdata/
 pglogs/
 pgsock/
 .pytest_cache/
+uploads/
