@@ -12,27 +12,27 @@
 
 ```
 my-company/
-├── backend/            # FastAPI 后端
+├── backend/                            # FastAPI 后端
 │   ├── app/
-│   │   ├── core/        # 配置、数据库、安全（JWT/密码）、统一异常处理
-│   │   ├── models/       # SQLAlchemy ORM 模型
-│   │   ├── schemas/      # Pydantic 请求/响应模型
-│   │   ├── api/v1/        # 路由（按模块拆分）
-│   │   ├── services/      # 业务逻辑
+│   │   ├── core/                       # 配置、数据库、安全（JWT/密码）、统一异常处理
+│   │   ├── models/                     # SQLAlchemy ORM 模型
+│   │   ├── schemas/                    # Pydantic 请求/响应模型
+│   │   ├── api/v1/                     # 路由（按模块拆分）
+│   │   ├── services/                   # 业务逻辑
 │   │   └── main.py
-│   ├── alembic/            # 数据库迁移脚本
-│   ├── scripts/             # 本地开发用 PostgreSQL 启停脚本
-│   ├── pgdata/pgsock/pglogs/ # 本地 PostgreSQL 数据/socket/日志（已 gitignore）
+│   ├── alembic/                        # 数据库迁移脚本
+│   ├── scripts/                        # 本地开发用 PostgreSQL 启停脚本
+│   ├── pgdata/pgsock/pglogs/           # 本地 PostgreSQL 数据/socket/日志（已 gitignore）
 │   ├── requirements.txt
-│   └── .venv/               # Python 虚拟环境
-├── frontend/            # React 前端
+│   └── .venv/                          # Python 虚拟环境
+├── frontend/                           # React 前端
 │   └── src/
-│       ├── api/          # axios 请求封装（统一响应处理）
-│       ├── store/         # zustand 状态管理（登录态等）
-│       ├── router/         # 路由与登录守卫
-│       ├── layouts/         # 整体布局（侧边栏+顶部栏）
-│       └── pages/            # 各业务模块页面
-└── docs/                # 项目文档
+│       ├── api/                        # axios 请求封装（统一响应处理）
+│       ├── store/                      # zustand 状态管理（登录态等）
+│       ├── router/                     # 路由与登录守卫
+│       ├── layouts/                    # 整体布局（侧边栏+顶部栏）
+│       └── pages/                      # 各业务模块页面
+└── docs/                               # 项目文档
 ```
 
 ## 本地开发环境启动
