@@ -198,7 +198,7 @@ export default function CompanyPage() {
         onCancel={() => setEditOpen(false)}
         onOk={() => editForm.submit()}
         confirmLoading={editSaving}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={editForm} layout="vertical" onFinish={handleEditSave}>
           <Form.Item name="name" label="公司名称" rules={[{ required: true, message: '请输入公司名称' }]}>
@@ -231,7 +231,7 @@ export default function CompanyPage() {
         onCancel={() => setCreateOpen(false)}
         onOk={() => createForm.submit()}
         confirmLoading={createSaving}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={createForm} layout="vertical" onFinish={handleCreateAnnouncement}>
           <Form.Item name="title" label="标题" rules={[{ required: true, message: '请输入标题' }]}>

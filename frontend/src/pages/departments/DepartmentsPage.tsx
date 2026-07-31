@@ -424,7 +424,7 @@ export default function DepartmentsPage() {
         onCancel={() => setDeptModalOpen(false)}
         onOk={() => deptForm.submit()}
         confirmLoading={deptSaving}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={deptForm} layout="vertical" onFinish={handleDeptSubmit}>
           <Form.Item name="name" label="部门名称" rules={[{ required: true, message: '请输入部门名称' }]}>
@@ -460,7 +460,7 @@ export default function DepartmentsPage() {
         onCancel={() => setUserModalOpen(false)}
         onOk={() => userForm.submit()}
         confirmLoading={userSaving}
-        destroyOnClose
+        destroyOnHidden
         width={560}
       >
         <Form form={userForm} layout="vertical" onFinish={handleUserSubmit}>

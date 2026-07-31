@@ -82,7 +82,7 @@ export default function ProfilePage() {
       <Row gutter={24}>
         <Col span={8}>
           <Card>
-            <Space direction="vertical" align="center" style={{ width: '100%' }}>
+            <Space orientation="vertical" align="center" style={{ width: '100%' }}>
               <Avatar size={96} src={user.avatar_url ?? undefined} icon={<UserOutlined />} />
               <Typography.Title level={5} style={{ marginBottom: 0 }}>
                 {user.display_name}
@@ -147,7 +147,7 @@ export default function ProfilePage() {
         onCancel={() => setPwdOpen(false)}
         onOk={() => pwdForm.submit()}
         confirmLoading={pwdSaving}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={pwdForm} layout="vertical" onFinish={handleChangePassword}>
           <Form.Item name="oldPassword" label="原密码" rules={[{ required: true, message: '请输入原密码' }]}>
