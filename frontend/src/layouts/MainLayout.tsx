@@ -56,6 +56,7 @@ export default function MainLayout() {
     token: { colorBgContainer },
   } = theme.useToken()
   const canApprove = isManagerOrAbove(user)
+  const canMarkPaid = isHrOrAdmin(user)
 
   const [searchValue, setSearchValue] = useState('')
   const [searchOptions, setSearchOptions] = useState<{ value: string; label: React.ReactNode; item: SearchResultItem }[]>(
@@ -65,6 +66,8 @@ export default function MainLayout() {
   const [pendingLeaveCount, setPendingLeaveCount] = useState(0)
   const [unreadMailCount, setUnreadMailCount] = useState(0)
   const [myIssueCount, setMyIssueCount] = useState(0)
+  const [pendingExpenseCount, setPendingExpenseCount] = useState(0)
+  const [payableExpenseCount, setPayableExpenseCount] = useState(0)
 
   const selectedKey = useMemo(() => {
     const matched = menuItems.find((item) => location.pathname.startsWith(item.key))
@@ -79,6 +82,10 @@ export default function MainLayout() {
   const loadNotificationCounts = () => {
     if (canApprove) {
       leaveApi.list({ status: 'pending' }).then((res) => setPendingLeaveCount(res.data.length))
+      expenseApi.list({ status: 'pending' }).then((res) => setPendingExpenseCount(res.data.length))
+    }
+    if (canMarkPaid) {
+      expenseApi.list({ status: 'approved' }).then((res) => setPayableExpenseCount(res.data.length))
     }
     mailApi.unreadCount().then((res) => setUnreadMailCount(res.data.count))
     projectApi.myIssues().then((res) => setMyIssueCount(res.data.length))
@@ -89,7 +96,7 @@ export default function MainLayout() {
     const timer = window.setInterval(loadNotificationCounts, 60000)
     return () => window.clearInterval(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canApprove])
+  }, [canApprove, canMarkPaid])
 
   useEffect(() => {
     const keyword = searchValue.trim()
@@ -132,6 +139,22 @@ export default function MainLayout() {
           onClick: () => navigate('/leaves'),
         }
       : null,
+    canApprove
+      ? {
+          key: 'expenses',
+          icon: <AccountBookOutlined />,
+          label: `待我审批的报销（${pendingExpenseCount}）`,
+          onClick: () => navigate('/expenses'),
+        }
+      : null,
+    canMarkPaid
+      ? {
+          key: 'expenses-pay',
+          icon: <AccountBookOutlined />,
+          label: `待付款的报销（${payableExpenseCount}）`,
+          onClick: () => navigate('/expenses'),
+        }
+      : null,
     {
       key: 'mails',
       icon: <MailOutlined />,
@@ -146,7 +169,8 @@ export default function MainLayout() {
     },
   ].filter((item): item is NonNullable<typeof item> => !!item)
 
-  const notificationTotal = (canApprove ? pendingLeaveCount : 0) + unreadMailCount
+  const notificationTotal =
+    (canApprove ? pendingLeaveCount + pendingExpenseCount : 0) + (canMarkPaid ? payableExpenseCount : 0) + unreadMailCount
 
   return (
     <Layout style={{ minHeight: '100vh' }}>

@@ -1,8 +1,16 @@
 import { useEffect, useState } from 'react'
 import { Card, Col, List, Row, Space, Statistic, Tag, Typography } from 'antd'
 import dayjs from 'dayjs'
-import { CalendarOutlined, MailOutlined, ProjectOutlined, PushpinFilled, ScheduleOutlined } from '@ant-design/icons'
+import {
+  AccountBookOutlined,
+  CalendarOutlined,
+  MailOutlined,
+  ProjectOutlined,
+  PushpinFilled,
+  ScheduleOutlined,
+} from '@ant-design/icons'
 import { leaveApi } from '../../api/leave'
+import { expenseApi } from '../../api/expense'
 import { attendanceApi } from '../../api/attendance'
 import { projectApi } from '../../api/project'
 import { mailApi } from '../../api/mail'
@@ -15,6 +23,7 @@ export default function DashboardPage() {
   const canApprove = isManagerOrAbove(user)
 
   const [leaveCount, setLeaveCount] = useState(0)
+  const [expenseCount, setExpenseCount] = useState(0)
   const [attendanceDays, setAttendanceDays] = useState(0)
   const [myIssueCount, setMyIssueCount] = useState(0)
   const [unreadMailCount, setUnreadMailCount] = useState(0)
@@ -26,8 +35,9 @@ export default function DashboardPage() {
     const loadAll = async () => {
       setLoading(true)
       try {
-        const [leaveRes, attendanceRes, issueRes, mailRes, announcementRes] = await Promise.all([
+        const [leaveRes, expenseRes, attendanceRes, issueRes, mailRes, announcementRes] = await Promise.all([
           canApprove ? leaveApi.list({ status: 'pending' }) : leaveApi.mine(),
+          canApprove ? expenseApi.list({ status: 'pending' }) : expenseApi.mine(),
           attendanceApi.mine({ year: now.year(), month: now.month() + 1 }),
           projectApi.myIssues(),
           mailApi.unreadCount(),
@@ -35,6 +45,9 @@ export default function DashboardPage() {
         ])
         setLeaveCount(
           canApprove ? leaveRes.data.length : leaveRes.data.filter((item) => item.status === 'pending').length,
+        )
+        setExpenseCount(
+          canApprove ? expenseRes.data.length : expenseRes.data.filter((item) => item.status === 'pending').length,
         )
         setAttendanceDays(attendanceRes.data.filter((item) => !!item.clock_in_at).length)
         setMyIssueCount(issueRes.data.length)
@@ -51,8 +64,8 @@ export default function DashboardPage() {
     <div>
       <Typography.Title level={4}>欢迎回来，{user?.display_name ?? ''}</Typography.Title>
       <Typography.Paragraph type="secondary">这里是您的工作台，汇总了请假、签到、看板与邮件的实时数据。</Typography.Paragraph>
-      <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={6}>
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Col span={8}>
           <Card loading={loading}>
             <Statistic
               title={canApprove ? '待我审批的请假' : '我的待处理请假'}
@@ -61,17 +74,26 @@ export default function DashboardPage() {
             />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col span={8}>
+          <Card loading={loading}>
+            <Statistic
+              title={canApprove ? '待我审批的报销' : '我的待处理报销'}
+              value={expenseCount}
+              prefix={<AccountBookOutlined />}
+            />
+          </Card>
+        </Col>
+        <Col span={8}>
           <Card loading={loading}>
             <Statistic title="本月签到天数" value={attendanceDays} prefix={<ScheduleOutlined />} />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col span={8}>
           <Card loading={loading}>
             <Statistic title="我的待办工单" value={myIssueCount} prefix={<ProjectOutlined />} />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col span={8}>
           <Card loading={loading}>
             <Statistic title="未读邮件" value={unreadMailCount} prefix={<MailOutlined />} />
           </Card>
