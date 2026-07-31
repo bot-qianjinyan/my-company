@@ -13,3 +13,7 @@ build/
 .idea/
 .vscode/
 outputs/
+
+# 部署环境变量（含密钥/密码，不应提交）
+.env
+.env.production
