@@ -60,6 +60,12 @@ def delete_project(
     return success_response(message="项目已删除")
 
 
+@router.get("/issues/mine")
+def get_my_issues(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+    issues = project_service.list_my_issues(db, current_user)
+    return success_response(data=[_dump_issue(i) for i in issues])
+
+
 @router.get("/{project_id}/issues")
 def list_issues(
     project_id: int, _current_user: User = Depends(get_current_user), db: Session = Depends(get_db)

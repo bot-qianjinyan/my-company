@@ -1,20 +1,34 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { Avatar, Dropdown, Layout, Menu, Space, theme } from 'antd'
+import { AutoComplete, Avatar, Badge, Dropdown, Input, Layout, Menu, Space, theme } from 'antd'
 import {
   BankOutlined,
+  BellOutlined,
   BookOutlined,
   CalendarOutlined,
   DashboardOutlined,
+  FileTextOutlined,
   IdcardOutlined,
   LogoutOutlined,
   MailOutlined,
   ProjectOutlined,
   ScheduleOutlined,
+  SearchOutlined,
   TeamOutlined,
   UserOutlined,
 } from '@ant-design/icons'
-import { useAuthStore } from '../store/auth'
+import { useAuthStore, isManagerOrAbove } from '../store/auth'
+import { searchApi, type SearchResultItem } from '../api/search'
+import { leaveApi } from '../api/leave'
+import { mailApi } from '../api/mail'
+import { projectApi } from '../api/project'
+
+const SEARCH_TYPE_ICON: Record<string, React.ReactNode> = {
+  user: <UserOutlined />,
+  wiki: <BookOutlined />,
+  project: <ProjectOutlined />,
+  issue: <FileTextOutlined />,
+}
 
 const { Header, Sider, Content } = Layout
 
@@ -38,6 +52,16 @@ export default function MainLayout() {
   const {
     token: { colorBgContainer },
   } = theme.useToken()
+  const canApprove = isManagerOrAbove(user)
+
+  const [searchValue, setSearchValue] = useState('')
+  const [searchOptions, setSearchOptions] = useState<{ value: string; label: React.ReactNode; item: SearchResultItem }[]>(
+    [],
+  )
+
+  const [pendingLeaveCount, setPendingLeaveCount] = useState(0)
+  const [unreadMailCount, setUnreadMailCount] = useState(0)
+  const [myIssueCount, setMyIssueCount] = useState(0)
 
   const selectedKey = useMemo(() => {
     const matched = menuItems.find((item) => location.pathname.startsWith(item.key))
@@ -48,6 +72,78 @@ export default function MainLayout() {
     logout()
     navigate('/login')
   }
+
+  const loadNotificationCounts = () => {
+    if (canApprove) {
+      leaveApi.list({ status: 'pending' }).then((res) => setPendingLeaveCount(res.data.length))
+    }
+    mailApi.unreadCount().then((res) => setUnreadMailCount(res.data.count))
+    projectApi.myIssues().then((res) => setMyIssueCount(res.data.length))
+  }
+
+  useEffect(() => {
+    loadNotificationCounts()
+    const timer = window.setInterval(loadNotificationCounts, 60000)
+    return () => window.clearInterval(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canApprove])
+
+  useEffect(() => {
+    const keyword = searchValue.trim()
+    if (!keyword) {
+      setSearchOptions([])
+      return
+    }
+    const timer = window.setTimeout(() => {
+      searchApi.search(keyword).then((res) => {
+        setSearchOptions(
+          res.data.map((item) => ({
+            value: `${item.type}-${item.id}`,
+            item,
+            label: (
+              <Space>
+                {SEARCH_TYPE_ICON[item.type]}
+                <span>{item.title}</span>
+                {item.subtitle && <span style={{ color: 'rgba(0,0,0,0.45)', fontSize: 12 }}>{item.subtitle}</span>}
+              </Space>
+            ),
+          })),
+        )
+      })
+    }, 300)
+    return () => window.clearTimeout(timer)
+  }, [searchValue])
+
+  const handleSearchSelect = (_value: string, option: { item: SearchResultItem }) => {
+    navigate(option.item.link)
+    setSearchValue('')
+    setSearchOptions([])
+  }
+
+  const notificationItems = [
+    canApprove
+      ? {
+          key: 'leaves',
+          icon: <CalendarOutlined />,
+          label: `待我审批的请假（${pendingLeaveCount}）`,
+          onClick: () => navigate('/leaves'),
+        }
+      : null,
+    {
+      key: 'mails',
+      icon: <MailOutlined />,
+      label: `未读邮件（${unreadMailCount}）`,
+      onClick: () => navigate('/mails'),
+    },
+    {
+      key: 'issues',
+      icon: <ProjectOutlined />,
+      label: `我的待办工单（${myIssueCount}）`,
+      onClick: () => navigate('/projects'),
+    },
+  ].filter((item): item is NonNullable<typeof item> => !!item)
+
+  const notificationTotal = (canApprove ? pendingLeaveCount : 0) + unreadMailCount
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -80,27 +176,44 @@ export default function MainLayout() {
             background: colorBgContainer,
             padding: '0 24px',
             display: 'flex',
-            justifyContent: 'flex-end',
+            justifyContent: 'space-between',
             alignItems: 'center',
           }}
         >
-          <Dropdown
-            menu={{
-              items: [
-                { key: 'profile', icon: <IdcardOutlined />, label: '我的信息', onClick: () => navigate('/profile') },
-                { type: 'divider' },
-                { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', onClick: handleLogout },
-              ],
-            }}
+          <AutoComplete
+            style={{ width: 320 }}
+            options={searchOptions}
+            value={searchValue}
+            onChange={setSearchValue}
+            onSelect={handleSearchSelect}
+            popupMatchSelectWidth={360}
           >
-            <Space style={{ cursor: 'pointer' }}>
-              <Avatar src={user?.avatar_url ?? undefined} icon={<UserOutlined />} />
-              <span>{user?.display_name ?? '未登录'}</span>
-              {user?.department?.name && (
-                <span style={{ color: 'rgba(0,0,0,0.45)', fontSize: 12 }}>{user.department.name}</span>
-              )}
-            </Space>
-          </Dropdown>
+            <Input placeholder="搜索员工、项目、工单、知识库文档" prefix={<SearchOutlined />} allowClear />
+          </AutoComplete>
+          <Space size="large">
+            <Dropdown menu={{ items: notificationItems }} trigger={['click']} placement="bottomRight">
+              <Badge count={notificationTotal} size="small">
+                <BellOutlined style={{ fontSize: 18, cursor: 'pointer' }} />
+              </Badge>
+            </Dropdown>
+            <Dropdown
+              menu={{
+                items: [
+                  { key: 'profile', icon: <IdcardOutlined />, label: '我的信息', onClick: () => navigate('/profile') },
+                  { type: 'divider' },
+                  { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', onClick: handleLogout },
+                ],
+              }}
+            >
+              <Space style={{ cursor: 'pointer' }}>
+                <Avatar src={user?.avatar_url ?? undefined} icon={<UserOutlined />} />
+                <span>{user?.display_name ?? '未登录'}</span>
+                {user?.department?.name && (
+                  <span style={{ color: 'rgba(0,0,0,0.45)', fontSize: 12 }}>{user.department.name}</span>
+                )}
+              </Space>
+            </Dropdown>
+          </Space>
         </Header>
         <Content style={{ margin: 24, padding: 24, background: colorBgContainer, borderRadius: 8 }}>
           <Outlet />

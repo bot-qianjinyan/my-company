@@ -6,6 +6,7 @@ from app.models.leave import LeaveRequest
 from app.models.attendance import AttendanceRecord
 from app.models.project import Issue, Project, project_members
 from app.models.wiki import WikiPage, WikiSpace
+from app.models.mail import Mail, MailRecipient
 
 __all__ = [
     "Role",
@@ -21,4 +22,6 @@ __all__ = [
     "project_members",
     "WikiSpace",
     "WikiPage",
+    "Mail",
+    "MailRecipient",
 ]

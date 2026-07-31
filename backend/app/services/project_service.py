@@ -76,6 +76,16 @@ def delete_project(db: Session, project_id: int, current_user: User) -> None:
     db.commit()
 
 
+def list_my_issues(db: Session, user: User) -> list[Issue]:
+    return (
+        db.query(Issue)
+        .options(*_ISSUE_RELATIONS)
+        .filter(Issue.assignee_id == user.id, Issue.status != "done")
+        .order_by(Issue.due_date.is_(None), Issue.due_date)
+        .all()
+    )
+
+
 def list_issues(db: Session, project_id: int) -> list[Issue]:
     get_project_or_404(db, project_id)
     return (

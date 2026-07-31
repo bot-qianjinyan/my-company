@@ -65,3 +65,101 @@ export interface AnnouncementOut {
   created_at: string
   created_by_name?: string | null
 }
+
+export interface PersonBrief {
+  id: number
+  display_name: string
+}
+
+export interface LeaveRequestOut {
+  id: number
+  leave_type: string
+  start_date: string
+  end_date: string
+  days: number
+  reason?: string | null
+  status: string
+  approve_comment?: string | null
+  approved_at?: string | null
+  created_at: string
+  user: PersonBrief
+  approver?: PersonBrief | null
+}
+
+export interface AttendanceRecordOut {
+  id: number
+  work_date: string
+  clock_in_at?: string | null
+  clock_out_at?: string | null
+  status: string
+  note?: string | null
+}
+
+export interface AttendanceRecordWithUserOut extends AttendanceRecordOut {
+  user: PersonBrief
+}
+
+export interface ProjectOut {
+  id: number
+  key: string
+  name: string
+  description?: string | null
+  owner?: PersonBrief | null
+  member_count: number
+  issue_count: number
+}
+
+export interface IssueOut {
+  id: number
+  project_id: number
+  title: string
+  description?: string | null
+  issue_type: string
+  priority: string
+  status: string
+  due_date?: string | null
+  sort_order: number
+  created_at: string
+  assignee?: PersonBrief | null
+  reporter?: PersonBrief | null
+}
+
+export interface WikiSpaceOut {
+  id: number
+  key: string
+  name: string
+  description?: string | null
+  owner?: PersonBrief | null
+  page_count: number
+}
+
+export interface WikiPageOut {
+  id: number
+  space_id: number
+  parent_id?: number | null
+  title: string
+  content: string
+  sort_order: number
+  creator?: PersonBrief | null
+  updated_by?: PersonBrief | null
+  updated_at: string
+}
+
+export interface InboxMailOut {
+  id: number
+  subject: string
+  content: string
+  created_at: string
+  sender: PersonBrief
+  is_read: boolean
+  read_at?: string | null
+}
+
+export interface SentMailOut {
+  id: number
+  subject: string
+  content: string
+  created_at: string
+  sender: PersonBrief
+  recipients: PersonBrief[]
+}
