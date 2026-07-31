@@ -1,6 +1,19 @@
 from fastapi import APIRouter
 
-from app.api.v1 import attendance, auth, company, departments, health, leaves, mails, projects, search, users, wiki
+from app.api.v1 import (
+    attendance,
+    auth,
+    company,
+    departments,
+    expenses,
+    health,
+    leaves,
+    mails,
+    projects,
+    search,
+    users,
+    wiki,
+)
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(health.router)
@@ -13,4 +26,5 @@ api_router.include_router(attendance.router)
 api_router.include_router(projects.router)
 api_router.include_router(wiki.router)
 api_router.include_router(mails.router)
+api_router.include_router(expenses.router)
 api_router.include_router(search.router)

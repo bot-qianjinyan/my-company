@@ -11,6 +11,7 @@ import AttendancePage from '../pages/attendance/AttendancePage'
 import ProjectsPage from '../pages/projects/ProjectsPage'
 import WikiPage from '../pages/wiki/WikiPage'
 import MailsPage from '../pages/mails/MailsPage'
+import ExpensesPage from '../pages/expenses/ExpensesPage'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -28,6 +29,7 @@ export const router = createBrowserRouter([
       { path: 'profile', element: <ProfilePage /> },
       { path: 'departments', element: <DepartmentsPage /> },
       { path: 'leaves', element: <LeavesPage /> },
+      { path: 'expenses', element: <ExpensesPage /> },
       { path: 'attendance', element: <AttendancePage /> },
       { path: 'projects', element: <ProjectsPage /> },
       { path: 'wiki', element: <WikiPage /> },

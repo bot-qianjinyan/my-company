@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { AutoComplete, Avatar, Badge, Dropdown, Input, Layout, Menu, Space, theme } from 'antd'
 import {
+  AccountBookOutlined,
   BankOutlined,
   BellOutlined,
   BookOutlined,
@@ -17,11 +18,12 @@ import {
   TeamOutlined,
   UserOutlined,
 } from '@ant-design/icons'
-import { useAuthStore, isManagerOrAbove } from '../store/auth'
+import { useAuthStore, isHrOrAdmin, isManagerOrAbove } from '../store/auth'
 import { searchApi, type SearchResultItem } from '../api/search'
 import { leaveApi } from '../api/leave'
 import { mailApi } from '../api/mail'
 import { projectApi } from '../api/project'
+import { expenseApi } from '../api/expense'
 
 const SEARCH_TYPE_ICON: Record<string, React.ReactNode> = {
   user: <UserOutlined />,
@@ -38,6 +40,7 @@ const menuItems = [
   { key: '/profile', icon: <UserOutlined />, label: '我的信息' },
   { key: '/departments', icon: <TeamOutlined />, label: '组织架构' },
   { key: '/leaves', icon: <CalendarOutlined />, label: '请假管理' },
+  { key: '/expenses', icon: <AccountBookOutlined />, label: '报销管理' },
   { key: '/attendance', icon: <ScheduleOutlined />, label: '签到打卡' },
   { key: '/projects', icon: <ProjectOutlined />, label: 'Jira看板' },
   { key: '/wiki', icon: <BookOutlined />, label: '知识库' },

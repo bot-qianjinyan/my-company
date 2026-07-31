@@ -163,3 +163,29 @@ export interface SentMailOut {
   sender: PersonBrief
   recipients: PersonBrief[]
 }
+
+export interface ExpenseInvoiceOut {
+  id: number
+  file_name: string
+  file_url: string
+  invoice_no?: string | null
+  amount?: number | null
+  created_at: string
+}
+
+export interface ExpenseClaimOut {
+  id: number
+  title: string
+  category: string
+  amount: number
+  expense_date: string
+  description?: string | null
+  status: string
+  approve_comment?: string | null
+  approved_at?: string | null
+  paid_at?: string | null
+  created_at: string
+  user: PersonBrief
+  approver?: PersonBrief | null
+  invoices: ExpenseInvoiceOut[]
+}
