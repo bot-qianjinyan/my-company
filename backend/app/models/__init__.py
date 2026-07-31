@@ -7,6 +7,7 @@ from app.models.attendance import AttendanceRecord
 from app.models.project import Issue, Project, project_members
 from app.models.wiki import WikiPage, WikiSpace
 from app.models.mail import Mail, MailRecipient
+from app.models.expense import ExpenseClaim, ExpenseInvoice
 
 __all__ = [
     "Role",
@@ -24,4 +25,6 @@ __all__ = [
     "WikiPage",
     "Mail",
     "MailRecipient",
+    "ExpenseClaim",
+    "ExpenseInvoice",
 ]
