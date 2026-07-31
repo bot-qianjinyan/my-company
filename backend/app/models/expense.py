@@ -47,3 +47,9 @@ class ExpenseInvoice(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     claim: Mapped["ExpenseClaim"] = relationship(back_populates="invoices")
+
+    @property
+    def file_url(self) -> str:
+        from app.core.storage import invoice_file_url
+
+        return invoice_file_url(self.file_path)
