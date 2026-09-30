@@ -17,10 +17,11 @@ import {
   message,
 } from 'antd'
 import type { DataNode } from 'antd/es/tree'
-import { BookOutlined, DeleteOutlined, FileTextOutlined, PlusOutlined } from '@ant-design/icons'
+import { BookOutlined, DeleteOutlined, EditOutlined, FileTextOutlined, PlusOutlined } from '@ant-design/icons'
 import { wikiApi, type WikiPageCreatePayload, type WikiSpaceCreatePayload } from '../../api/wiki'
 import type { WikiPageOut, WikiSpaceOut } from '../../api/types'
 import { isAdmin, useAuthStore } from '../../store/auth'
+import WikiMarkdown from './WikiMarkdown'
 
 interface PageFormValues {
   title: string
@@ -64,6 +65,7 @@ export default function WikiPage() {
 
   const [content, setContent] = useState('')
   const [contentDirty, setContentDirty] = useState(false)
+  const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
 
   const [spaceModalOpen, setSpaceModalOpen] = useState(false)
@@ -109,6 +111,8 @@ export default function WikiPage() {
       loadPages(selectedSpace)
       setSelectedPage(null)
       setContent('')
+      setContentDirty(false)
+      setEditing(false)
     }
   }, [selectedSpace])
 
@@ -120,7 +124,14 @@ export default function WikiPage() {
       setSelectedPage(page)
       setContent(page.content)
       setContentDirty(false)
+      setEditing(false)
     }
+  }
+
+  const cancelEdit = () => {
+    setContent(selectedPage?.content ?? '')
+    setContentDirty(false)
+    setEditing(false)
   }
 
   const handleCreateSpace = async (values: WikiSpaceCreatePayload) => {
@@ -167,6 +178,8 @@ export default function WikiPage() {
       await loadPages(selectedSpace)
       setSelectedPage(res.data)
       setContent(res.data.content)
+      setContentDirty(false)
+      setEditing(false)
     } finally {
       setPageSaving(false)
     }
@@ -179,7 +192,9 @@ export default function WikiPage() {
       const res = await wikiApi.updatePage(selectedPage.id, { content })
       message.success('文档已保存')
       setSelectedPage(res.data)
+      setContent(res.data.content)
       setContentDirty(false)
+      setEditing(false)
       if (selectedSpace) loadPages(selectedSpace)
     } finally {
       setSaving(false)
@@ -193,6 +208,7 @@ export default function WikiPage() {
     if (selectedPage?.id === page.id) {
       setSelectedPage(null)
       setContent('')
+      setEditing(false)
     }
   }
 
@@ -287,9 +303,24 @@ export default function WikiPage() {
                       删除
                     </Button>
                   </Popconfirm>
-                  <Button type="primary" disabled={!contentDirty} loading={saving} onClick={handleSaveContent}>
-                    保存
-                  </Button>
+                  {editing ? (
+                    <>
+                      {contentDirty ? (
+                        <Popconfirm title="放弃未保存的修改？" onConfirm={cancelEdit}>
+                          <Button>取消</Button>
+                        </Popconfirm>
+                      ) : (
+                        <Button onClick={cancelEdit}>取消</Button>
+                      )}
+                      <Button type="primary" disabled={!contentDirty} loading={saving} onClick={handleSaveContent}>
+                        保存
+                      </Button>
+                    </>
+                  ) : (
+                    <Button icon={<EditOutlined />} onClick={() => setEditing(true)}>
+                      编辑
+                    </Button>
+                  )}
                 </Space>
               }
             >
@@ -297,16 +328,20 @@ export default function WikiPage() {
                 创建人：{selectedPage.creator?.display_name ?? '-'} · 最后更新：
                 {selectedPage.updated_by?.display_name ?? '-'} {new Date(selectedPage.updated_at).toLocaleString()}
               </Typography.Text>
-              <Input.TextArea
-                style={{ marginTop: 16, fontFamily: 'monospace' }}
-                rows={20}
-                value={content}
-                onChange={(e) => {
-                  setContent(e.target.value)
-                  setContentDirty(true)
-                }}
-                placeholder="支持 Markdown 格式书写文档内容"
-              />
+              {editing ? (
+                <Input.TextArea
+                  style={{ marginTop: 16, fontFamily: 'monospace' }}
+                  rows={20}
+                  value={content}
+                  onChange={(e) => {
+                    setContent(e.target.value)
+                    setContentDirty(true)
+                  }}
+                  placeholder="使用 Markdown 编写，保存后以阅读模式展示"
+                />
+              ) : (
+                <WikiMarkdown content={content} title={selectedPage.title} />
+              )}
             </Card>
           ) : (
             <Card>
