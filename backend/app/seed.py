@@ -1,4 +1,4 @@
-"""初始化基础数据：角色、管理员账号、示例部门、公司信息
+"""初始化基础数据：角色、管理员账号、示例部门、公司信息、知识库文档
 
 用法：
     source .venv/bin/activate
@@ -7,7 +7,7 @@
 
 from app.core.database import SessionLocal
 from app.core.security import hash_password
-from app.models import CompanyInfo, Department, Role, User
+from app.models import CompanyInfo, Department, Role, User, WikiPage, WikiSpace
 
 ROLE_DEFINITIONS = [
     ("admin", "系统管理员", "拥有全部管理权限"),
@@ -15,6 +15,36 @@ ROLE_DEFINITIONS = [
     ("manager", "部门主管", "审批本部门请假、查看团队信息"),
     ("employee", "普通员工", "基础功能权限"),
 ]
+
+ATTENDANCE_PAGE_TITLE = "上班打卡时间"
+
+ATTENDANCE_PAGE_CONTENT = """# 上班打卡时间
+
+公司实行固定工时。请在「签到打卡」页面完成每日签到与签退，每人每天各一次。
+
+## 时间规定
+
+| 事项 | 时间 | 说明 |
+| --- | --- | --- |
+| 上班签到 | 09:30 及之前 | 记为「正常」 |
+| 迟到 | 09:30 之后 | 记为「迟到」 |
+| 下班签退 | 18:00 及之后 | 当天状态保持「正常」 |
+| 早退 | 18:00 之前签退 | 若当天尚未迟到，记为「早退」 |
+
+标准工作时间为 **09:30–18:00**。
+
+## 操作说明
+
+1. 当天第一次进入「签到打卡」，点击「签到」。当天已签到后不能重复签到。
+2. 下班后点击「签退」。未签到不能签退，当天已签退后不能重复签退。
+3. 「我的记录」可按月查看签到时间、签退时间、工作时长和状态（正常 / 迟到 / 早退）。
+4. 主管、HR 和管理员可在「团队记录」中查看团队考勤。
+
+## 注意事项
+
+- 以系统记录的签到、签退时间为准。
+- 迟到与早退会在考勤记录中单独标记，请尽量在规定时间内完成打卡。
+"""
 
 
 def seed() -> None:
@@ -48,6 +78,7 @@ def seed() -> None:
             )
             admin.roles = [role_map["admin"]]
             db.add(admin)
+            db.flush()
 
         company = db.query(CompanyInfo).first()
         if not company:
@@ -61,9 +92,38 @@ def seed() -> None:
             )
             db.add(company)
 
+        space = db.query(WikiSpace).filter(WikiSpace.key == "HR").first()
+        if not space:
+            space = WikiSpace(
+                key="HR",
+                name="员工手册",
+                description="公司日常制度与操作说明",
+                owner_id=admin.id,
+            )
+            db.add(space)
+            db.flush()
+
+        page = (
+            db.query(WikiPage)
+            .filter(WikiPage.space_id == space.id, WikiPage.title == ATTENDANCE_PAGE_TITLE)
+            .first()
+        )
+        if not page:
+            page = WikiPage(
+                space_id=space.id,
+                title=ATTENDANCE_PAGE_TITLE,
+                content=ATTENDANCE_PAGE_CONTENT.strip(),
+                sort_order=0,
+                creator_id=admin.id,
+                updated_by_id=admin.id,
+            )
+            db.add(page)
+
         db.commit()
         print("初始化完成：")
         print("  管理员账号: admin / admin123  (请登录后立即修改密码)")
+        print("  知识库空间: HR / 员工手册")
+        print(f"  知识库文档: {ATTENDANCE_PAGE_TITLE}")
     finally:
         db.close()
 
