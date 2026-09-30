@@ -5,7 +5,7 @@ from app.api.deps import get_current_user, require_manager_or_above
 from app.core.database import get_db
 from app.models import LeaveRequest, User
 from app.schemas.common import success_response
-from app.schemas.leave import LeaveDecisionRequest, LeaveRequestCreate, LeaveRequestOut
+from app.schemas.leave import AnnualLeaveBalanceOut, LeaveDecisionRequest, LeaveRequestCreate, LeaveRequestOut
 from app.services import leave_service
 
 router = APIRouter(prefix="/leaves", tags=["请假"])
@@ -13,6 +13,12 @@ router = APIRouter(prefix="/leaves", tags=["请假"])
 
 def _dump(leave: LeaveRequest) -> dict:
     return LeaveRequestOut.model_validate(leave).model_dump(mode="json")
+
+
+@router.get("/balance")
+def get_annual_balance(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+    balance = leave_service.get_annual_balance(db, current_user)
+    return success_response(data=AnnualLeaveBalanceOut.model_validate(balance).model_dump(mode="json"))
 
 
 @router.get("/mine")

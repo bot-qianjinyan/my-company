@@ -1,5 +1,5 @@
 import api from './client'
-import type { LeaveRequestOut } from './types'
+import type { AnnualLeaveBalance, LeaveRequestOut } from './types'
 
 export interface LeaveCreatePayload {
   leave_type: string
@@ -14,6 +14,7 @@ export interface LeaveDecisionPayload {
 }
 
 export const leaveApi = {
+  balance: () => api.get<AnnualLeaveBalance>('/leaves/balance'),
   mine: () => api.get<LeaveRequestOut[]>('/leaves/mine'),
   list: (params?: { status?: string; user_id?: number }) => api.get<LeaveRequestOut[]>('/leaves', { params }),
   create: (payload: LeaveCreatePayload) => api.post<LeaveRequestOut>('/leaves', payload),

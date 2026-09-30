@@ -1,14 +1,19 @@
 import { useEffect, useState } from 'react'
 import {
+  Alert,
   Button,
+  Card,
+  Col,
   DatePicker,
   Form,
   Input,
   InputNumber,
   Modal,
   Popconfirm,
+  Row,
   Select,
   Space,
+  Statistic,
   Table,
   Tabs,
   Tag,
@@ -19,7 +24,7 @@ import type { ColumnsType } from 'antd/es/table'
 import type { Dayjs } from 'dayjs'
 import { PlusOutlined } from '@ant-design/icons'
 import { leaveApi, type LeaveCreatePayload } from '../../api/leave'
-import type { LeaveRequestOut } from '../../api/types'
+import type { AnnualLeaveBalance, LeaveRequestOut } from '../../api/types'
 import { isManagerOrAbove, useAuthStore } from '../../store/auth'
 
 const { RangePicker } = DatePicker
@@ -43,6 +48,10 @@ function leaveTypeLabel(value: string): string {
   return LEAVE_TYPE_OPTIONS.find((item) => item.value === value)?.label ?? value
 }
 
+function formatDays(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/0$/, '')
+}
+
 interface LeaveFormValues {
   leave_type: string
   range: [Dayjs, Dayjs]
@@ -56,6 +65,7 @@ export default function LeavesPage() {
 
   const [myLeaves, setMyLeaves] = useState<LeaveRequestOut[]>([])
   const [myLoading, setMyLoading] = useState(true)
+  const [balance, setBalance] = useState<AnnualLeaveBalance | null>(null)
   const [pendingLeaves, setPendingLeaves] = useState<LeaveRequestOut[]>([])
   const [pendingLoading, setPendingLoading] = useState(true)
 
@@ -68,6 +78,11 @@ export default function LeavesPage() {
   )
   const [decisionForm] = Form.useForm<{ comment?: string }>()
   const [decisionSaving, setDecisionSaving] = useState(false)
+
+  const loadBalance = async () => {
+    const res = await leaveApi.balance()
+    setBalance(res.data)
+  }
 
   const loadMine = async () => {
     setMyLoading(true)
@@ -91,6 +106,7 @@ export default function LeavesPage() {
   }
 
   useEffect(() => {
+    loadBalance()
     loadMine()
     loadPending()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -121,6 +137,7 @@ export default function LeavesPage() {
       await leaveApi.create(payload)
       message.success('请假申请已提交')
       setCreateOpen(false)
+      loadBalance()
       loadMine()
       loadPending()
     } finally {
@@ -131,6 +148,7 @@ export default function LeavesPage() {
   const handleCancel = async (id: number) => {
     await leaveApi.cancel(id)
     message.success('请假申请已取消')
+    loadBalance()
     loadMine()
     loadPending()
   }
@@ -152,6 +170,7 @@ export default function LeavesPage() {
         message.success('已拒绝')
       }
       setDecisionTarget(null)
+      loadBalance()
       loadMine()
       loadPending()
     } finally {
@@ -255,6 +274,44 @@ export default function LeavesPage() {
   return (
     <div>
       <Typography.Title level={4}>请假管理</Typography.Title>
+      {balance && (
+        <Card size="small" style={{ marginBottom: 16 }}>
+          <Row gutter={[16, 16]}>
+            <Col xs={12} sm={8} md={4}>
+              <Statistic title="当前可请年假" value={formatDays(balance.total_available)} suffix="天" />
+            </Col>
+            <Col xs={12} sm={8} md={4}>
+              <Statistic title={`${balance.year} 年额度`} value={formatDays(balance.grant_days)} suffix="天" />
+            </Col>
+            <Col xs={12} sm={8} md={4}>
+              <Statistic title="本年已占用" value={formatDays(balance.used_days)} suffix="天" />
+            </Col>
+            <Col xs={12} sm={8} md={4}>
+              <Statistic title="本年剩余" value={formatDays(balance.remaining_days)} suffix="天" />
+            </Col>
+            {balance.carryover_active && (
+              <Col xs={12} sm={8} md={4}>
+                <Statistic
+                  title={`上年结转（至 ${balance.carryover_deadline}）`}
+                  value={formatDays(balance.carryover_days)}
+                  suffix="天"
+                />
+              </Col>
+            )}
+            {balance.carryover_expired_days > 0 && (
+              <Col xs={12} sm={8} md={4}>
+                <Statistic title="上年结转已清零" value={formatDays(balance.carryover_expired_days)} suffix="天" />
+              </Col>
+            )}
+          </Row>
+          <Alert
+            style={{ marginTop: 16 }}
+            type="info"
+            showIcon
+            title={`每人每年 ${formatDays(balance.grant_days)} 天年假，其中最多 ${formatDays(balance.carryover_limit_days)} 天可结转至次年 3 月 31 日。到期仍未使用的结转余额自动清零，申请年假时优先扣减这部分假期。已占用含待审批申请。`}
+          />
+        </Card>
+      )}
       <Tabs items={tabItems} />
 
       <Modal

@@ -71,6 +71,21 @@ export interface PersonBrief {
   display_name: string
 }
 
+export interface AnnualLeaveBalance {
+  year: number
+  grant_days: number
+  used_days: number
+  remaining_days: number
+  carryover_from_year?: number | null
+  carryover_limit_days: number
+  carryover_days: number
+  carryover_used_days: number
+  carryover_expired_days: number
+  carryover_deadline: string
+  carryover_active: boolean
+  total_available: number
+}
+
 export interface LeaveRequestOut {
   id: number
   leave_type: string
