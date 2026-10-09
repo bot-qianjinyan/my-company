@@ -10,9 +10,17 @@ body,
   font-family: -apple-system, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
 
+.app-sider.ant-layout-sider {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  max-height: 100vh;
+}
+
 .app-sider .ant-layout-sider-children {
   display: flex;
   flex-direction: column;
+  height: 100%;
   overflow: hidden;
 }
 
