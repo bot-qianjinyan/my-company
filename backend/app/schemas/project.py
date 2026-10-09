@@ -8,6 +8,7 @@ class ProjectUserBrief(BaseModel):
 
     id: int
     display_name: str
+    avatar_url: str | None = None
 
 
 class ProjectOut(BaseModel):
@@ -18,6 +19,7 @@ class ProjectOut(BaseModel):
     name: str
     description: str | None = None
     owner: ProjectUserBrief | None = None
+    members: list[ProjectUserBrief] = []
     member_count: int = 0
     issue_count: int = 0
 

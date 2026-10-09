@@ -9,3 +9,28 @@ body,
   min-height: 100vh;
   font-family: -apple-system, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
+
+.app-sider .ant-layout-sider-children {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.app-sider-brand {
+  flex: none;
+}
+
+.app-sider-menu {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.app-sider-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.app-sider-menu::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.28);
+  border-radius: 3px;
+}

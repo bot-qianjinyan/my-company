@@ -14,9 +14,10 @@ import {
   Space,
   Tag,
   Typography,
+  Upload,
   message,
 } from 'antd'
-import { LockOutlined, UserOutlined } from '@ant-design/icons'
+import { LockOutlined, UploadOutlined, UserOutlined } from '@ant-design/icons'
 import { authApi } from '../../api/auth'
 import { userApi, type ProfileUpdatePayload } from '../../api/user'
 import { useAuthStore } from '../../store/auth'
@@ -39,13 +40,13 @@ export default function ProfilePage() {
   const [pwdOpen, setPwdOpen] = useState(false)
   const [pwdForm] = Form.useForm<ChangePasswordForm>()
   const [pwdSaving, setPwdSaving] = useState(false)
+  const [avatarUploading, setAvatarUploading] = useState(false)
 
   useEffect(() => {
     if (user) {
       form.setFieldsValue({
         display_name: user.display_name,
         phone: user.phone ?? undefined,
-        avatar_url: user.avatar_url ?? undefined,
         gender: user.gender ?? undefined,
       })
     }
@@ -61,6 +62,17 @@ export default function ProfilePage() {
       message.success('个人信息已更新')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleUploadAvatar = async (file: File) => {
+    setAvatarUploading(true)
+    try {
+      const res = await userApi.uploadAvatar(file)
+      setUser(res.data)
+      message.success('头像已更新')
+    } finally {
+      setAvatarUploading(false)
     }
   }
 
@@ -84,6 +96,18 @@ export default function ProfilePage() {
           <Card>
             <Space orientation="vertical" align="center" style={{ width: '100%' }}>
               <Avatar size={96} src={user.avatar_url ?? undefined} icon={<UserOutlined />} />
+              <Upload
+                accept=".jpg,.jpeg,.png,.webp,.gif"
+                showUploadList={false}
+                beforeUpload={(file) => {
+                  void handleUploadAvatar(file)
+                  return false
+                }}
+              >
+                <Button icon={<UploadOutlined />} loading={avatarUploading}>
+                  上传头像
+                </Button>
+              </Upload>
               <Typography.Title level={5} style={{ marginBottom: 0 }}>
                 {user.display_name}
               </Typography.Title>
@@ -127,9 +151,6 @@ export default function ProfilePage() {
                   <Radio value="male">男</Radio>
                   <Radio value="female">女</Radio>
                 </Radio.Group>
-              </Form.Item>
-              <Form.Item name="avatar_url" label="头像地址">
-                <Input placeholder="头像图片 URL" />
               </Form.Item>
               <Form.Item>
                 <Button type="primary" htmlType="submit" loading={saving}>

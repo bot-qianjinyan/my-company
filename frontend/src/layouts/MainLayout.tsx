@@ -174,8 +174,9 @@ export default function MainLayout() {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed}>
+      <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed} className="app-sider">
         <div
+          className="app-sider-brand"
           style={{
             height: 48,
             margin: 16,
@@ -189,13 +190,15 @@ export default function MainLayout() {
         >
           {collapsed ? '公司' : '公司内部平台'}
         </div>
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={selectedKey}
-          items={menuItems}
-          onClick={({ key }) => navigate(key)}
-        />
+        <div className="app-sider-menu">
+          <Menu
+            theme="dark"
+            mode="inline"
+            selectedKeys={selectedKey}
+            items={menuItems}
+            onClick={({ key }) => navigate(key)}
+          />
+        </div>
       </Sider>
       <Layout>
         <Header

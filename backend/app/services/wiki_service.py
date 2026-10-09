@@ -12,8 +12,9 @@ def _is_admin(user: User) -> bool:
     return user.is_superuser or "admin" in user.role_codes
 
 
-def _can_manage_space(user: User, space: WikiSpace) -> bool:
-    return _is_admin(user) or space.owner_id == user.id
+def _require_admin(user: User) -> None:
+    if not _is_admin(user):
+        raise ForbiddenError("只有系统管理员可以管理知识库")
 
 
 def list_spaces(db: Session) -> list[WikiSpace]:
@@ -28,6 +29,7 @@ def get_space_or_404(db: Session, space_id: int) -> WikiSpace:
 
 
 def create_space(db: Session, payload: WikiSpaceCreate, owner: User) -> WikiSpace:
+    _require_admin(owner)
     key = payload.key.strip().upper()
     if db.query(WikiSpace).filter(WikiSpace.key == key).first():
         raise ConflictError("空间编号已存在")
@@ -40,8 +42,7 @@ def create_space(db: Session, payload: WikiSpaceCreate, owner: User) -> WikiSpac
 
 def update_space(db: Session, space_id: int, payload: WikiSpaceUpdate, current_user: User) -> WikiSpace:
     space = get_space_or_404(db, space_id)
-    if not _can_manage_space(current_user, space):
-        raise ForbiddenError("只有空间负责人或管理员可以修改空间")
+    _require_admin(current_user)
     data = payload.model_dump(exclude_unset=True)
     for field, value in data.items():
         setattr(space, field, value)
@@ -53,8 +54,7 @@ def update_space(db: Session, space_id: int, payload: WikiSpaceUpdate, current_u
 
 def delete_space(db: Session, space_id: int, current_user: User) -> None:
     space = get_space_or_404(db, space_id)
-    if not _can_manage_space(current_user, space):
-        raise ForbiddenError("只有空间负责人或管理员可以删除空间")
+    _require_admin(current_user)
     db.delete(space)
     db.commit()
 
@@ -78,6 +78,7 @@ def get_page_or_404(db: Session, page_id: int) -> WikiPage:
 
 
 def create_page(db: Session, space_id: int, payload: WikiPageCreate, creator: User) -> WikiPage:
+    _require_admin(creator)
     get_space_or_404(db, space_id)
     max_order = (
         db.query(WikiPage)
@@ -100,6 +101,7 @@ def create_page(db: Session, space_id: int, payload: WikiPageCreate, creator: Us
 
 
 def update_page(db: Session, page_id: int, payload: WikiPageUpdate, updater: User) -> WikiPage:
+    _require_admin(updater)
     page = get_page_or_404(db, page_id)
     data = payload.model_dump(exclude_unset=True)
     for field, value in data.items():
@@ -111,7 +113,8 @@ def update_page(db: Session, page_id: int, payload: WikiPageUpdate, updater: Use
     return page
 
 
-def delete_page(db: Session, page_id: int) -> None:
+def delete_page(db: Session, page_id: int, current_user: User) -> None:
+    _require_admin(current_user)
     page = get_page_or_404(db, page_id)
     db.delete(page)
     db.commit()

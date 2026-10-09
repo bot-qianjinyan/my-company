@@ -76,7 +76,7 @@ export default function WikiPage() {
   const [pageForm] = Form.useForm<PageFormValues>()
   const [pageSaving, setPageSaving] = useState(false)
 
-  const canManageSpace = (space: WikiSpaceOut | null) => !!space && (isAdmin(user) || space.owner?.id === user?.id)
+  const canManageWiki = isAdmin(user)
 
   const loadSpaces = async () => {
     setSpacesLoading(true)
@@ -221,7 +221,9 @@ export default function WikiPage() {
             size="small"
             title="空间"
             extra={
-              <Button type="text" icon={<PlusOutlined />} onClick={() => setSpaceModalOpen(true)} />
+              canManageWiki ? (
+                <Button type="text" icon={<PlusOutlined />} onClick={() => setSpaceModalOpen(true)} />
+              ) : undefined
             }
             loading={spacesLoading}
             style={{ marginBottom: 16 }}
@@ -240,7 +242,7 @@ export default function WikiPage() {
                   }}
                   onClick={() => setSelectedSpace(space)}
                   actions={
-                    canManageSpace(space)
+                    canManageWiki
                       ? [
                           <Popconfirm
                             key="delete"
@@ -275,7 +277,11 @@ export default function WikiPage() {
             <Card
               size="small"
               title="文档目录"
-              extra={<Button type="text" icon={<PlusOutlined />} onClick={openCreatePage} />}
+              extra={
+                canManageWiki ? (
+                  <Button type="text" icon={<PlusOutlined />} onClick={openCreatePage} />
+                ) : undefined
+              }
               loading={pagesLoading}
             >
               {treeData.length > 0 ? (
@@ -297,31 +303,33 @@ export default function WikiPage() {
             <Card
               title={selectedPage.title}
               extra={
-                <Space>
-                  <Popconfirm title="确定删除该文档？" onConfirm={() => handleDeletePage(selectedPage)}>
-                    <Button danger icon={<DeleteOutlined />}>
-                      删除
-                    </Button>
-                  </Popconfirm>
-                  {editing ? (
-                    <>
-                      {contentDirty ? (
-                        <Popconfirm title="放弃未保存的修改？" onConfirm={cancelEdit}>
-                          <Button>取消</Button>
-                        </Popconfirm>
-                      ) : (
-                        <Button onClick={cancelEdit}>取消</Button>
-                      )}
-                      <Button type="primary" disabled={!contentDirty} loading={saving} onClick={handleSaveContent}>
-                        保存
+                canManageWiki ? (
+                  <Space>
+                    <Popconfirm title="确定删除该文档？" onConfirm={() => handleDeletePage(selectedPage)}>
+                      <Button danger icon={<DeleteOutlined />}>
+                        删除
                       </Button>
-                    </>
-                  ) : (
-                    <Button icon={<EditOutlined />} onClick={() => setEditing(true)}>
-                      编辑
-                    </Button>
-                  )}
-                </Space>
+                    </Popconfirm>
+                    {editing ? (
+                      <>
+                        {contentDirty ? (
+                          <Popconfirm title="放弃未保存的修改？" onConfirm={cancelEdit}>
+                            <Button>取消</Button>
+                          </Popconfirm>
+                        ) : (
+                          <Button onClick={cancelEdit}>取消</Button>
+                        )}
+                        <Button type="primary" disabled={!contentDirty} loading={saving} onClick={handleSaveContent}>
+                          保存
+                        </Button>
+                      </>
+                    ) : (
+                      <Button icon={<EditOutlined />} onClick={() => setEditing(true)}>
+                        编辑
+                      </Button>
+                    )}
+                  </Space>
+                ) : undefined
               }
             >
               <Typography.Text type="secondary" style={{ fontSize: 12 }}>
@@ -345,7 +353,15 @@ export default function WikiPage() {
             </Card>
           ) : (
             <Card>
-              <Empty description={selectedSpace ? '请选择或创建一篇文档' : '请选择一个知识库空间'} />
+              <Empty
+                description={
+                  selectedSpace
+                    ? canManageWiki
+                      ? '请选择或创建一篇文档'
+                      : '请选择一篇文档'
+                    : '请选择一个知识库空间'
+                }
+              />
             </Card>
           )}
         </Col>

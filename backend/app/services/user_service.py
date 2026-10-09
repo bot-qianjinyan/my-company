@@ -1,7 +1,9 @@
+from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import ConflictError, NotFoundError
 from app.core.security import hash_password
+from app.core.storage import save_avatar_file
 from app.models import Role, User
 from app.schemas.user import ProfileUpdate, UserCreate, UserUpdate
 
@@ -72,6 +74,14 @@ def update_profile(db: Session, user: User, payload: ProfileUpdate) -> User:
     data = payload.model_dump(exclude_unset=True)
     for field, value in data.items():
         setattr(user, field, value)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+async def update_avatar(db: Session, user: User, file: UploadFile) -> User:
+    user.avatar_url = await save_avatar_file(user.id, file)
     db.add(user)
     db.commit()
     db.refresh(user)

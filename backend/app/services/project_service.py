@@ -31,7 +31,21 @@ def get_project_or_404(db: Session, project_id: int) -> Project:
 def _resolve_members(db: Session, member_ids: list[int]) -> list[User]:
     if not member_ids:
         return []
-    return db.query(User).filter(User.id.in_(member_ids)).all()
+    unique_ids = list(dict.fromkeys(member_ids))
+    return db.query(User).filter(User.id.in_(unique_ids)).all()
+
+
+def _with_owner(members: list[User], owner: User | None) -> list[User]:
+    if owner and owner not in members:
+        members.append(owner)
+    return members
+
+
+def _ensure_assignee_is_member(project: Project, assignee_id: int | None) -> None:
+    if assignee_id is None:
+        return
+    if assignee_id not in {member.id for member in project.members}:
+        raise AppException("只能指派给项目成员")
 
 
 def create_project(db: Session, payload: ProjectCreate, owner: User) -> Project:
@@ -42,14 +56,10 @@ def create_project(db: Session, payload: ProjectCreate, owner: User) -> Project:
         raise ConflictError("项目编号已存在")
 
     project = Project(key=key, name=payload.name, description=payload.description, owner_id=owner.id)
-    members = _resolve_members(db, payload.member_ids)
-    if owner not in members:
-        members.append(owner)
-    project.members = members
+    project.members = _with_owner(_resolve_members(db, payload.member_ids), owner)
     db.add(project)
     db.commit()
-    db.refresh(project)
-    return project
+    return get_project_or_404(db, project.id)
 
 
 def update_project(db: Session, project_id: int, payload: ProjectUpdate, current_user: User) -> Project:
@@ -61,11 +71,10 @@ def update_project(db: Session, project_id: int, payload: ProjectUpdate, current
     for field, value in data.items():
         setattr(project, field, value)
     if payload.member_ids is not None:
-        project.members = _resolve_members(db, payload.member_ids)
+        project.members = _with_owner(_resolve_members(db, payload.member_ids), project.owner)
     db.add(project)
     db.commit()
-    db.refresh(project)
-    return project
+    return get_project_or_404(db, project.id)
 
 
 def delete_project(db: Session, project_id: int, current_user: User) -> None:
@@ -105,7 +114,8 @@ def get_issue_or_404(db: Session, issue_id: int) -> Issue:
 
 
 def create_issue(db: Session, project_id: int, payload: IssueCreate, reporter: User) -> Issue:
-    get_project_or_404(db, project_id)
+    project = get_project_or_404(db, project_id)
+    _ensure_assignee_is_member(project, payload.assignee_id)
     max_order = db.query(Issue).filter(Issue.project_id == project_id, Issue.status == "todo").count()
     issue = Issue(
         project_id=project_id,
@@ -130,6 +140,9 @@ def update_issue(db: Session, issue_id: int, payload: IssueUpdate) -> Issue:
     if payload.status and payload.status not in ISSUE_STATUSES:
         raise AppException("非法的状态值")
     data = payload.model_dump(exclude_unset=True)
+    if "assignee_id" in data and data["assignee_id"] != issue.assignee_id:
+        project = get_project_or_404(db, issue.project_id)
+        _ensure_assignee_is_member(project, data["assignee_id"])
     for field, value in data.items():
         setattr(issue, field, value)
     db.add(issue)

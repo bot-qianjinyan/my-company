@@ -66,9 +66,8 @@ class UserUpdate(BaseModel):
 
 
 class ProfileUpdate(BaseModel):
-    """员工自己可编辑的字段"""
+    """员工自己可编辑的字段。头像通过单独的上传接口写入本地文件。"""
 
     display_name: str | None = None
     phone: str | None = None
-    avatar_url: str | None = None
     gender: str | None = None

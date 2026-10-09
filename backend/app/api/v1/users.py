@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, File, Query, UploadFile
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_hr_or_admin
@@ -35,6 +35,16 @@ def update_my_profile(
 ) -> dict:
     user = user_service.update_profile(db, current_user, payload)
     return success_response(data=_dump(user), message="个人信息已更新")
+
+
+@router.post("/me/avatar")
+async def upload_my_avatar(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    user = await user_service.update_avatar(db, current_user, file)
+    return success_response(data=_dump(user), message="头像已更新")
 
 
 @router.get("/{user_id}")

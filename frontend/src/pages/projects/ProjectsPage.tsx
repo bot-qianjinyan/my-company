@@ -23,6 +23,7 @@ import dayjs from 'dayjs'
 import {
   ArrowLeftOutlined,
   DeleteOutlined,
+  EditOutlined,
   MoreOutlined,
   PlusOutlined,
   ProjectOutlined,
@@ -85,6 +86,7 @@ export default function ProjectsPage() {
   const [issuesLoading, setIssuesLoading] = useState(false)
 
   const [projectModalOpen, setProjectModalOpen] = useState(false)
+  const [editingProject, setEditingProject] = useState<ProjectOut | null>(null)
   const [projectForm] = Form.useForm<ProjectCreatePayload>()
   const [projectSaving, setProjectSaving] = useState(false)
 
@@ -130,13 +132,66 @@ export default function ProjectsPage() {
 
   const canManageProject = (project: ProjectOut) => isAdmin(user) || project.owner?.id === user?.id
 
-  const handleCreateProject = async (values: ProjectCreatePayload) => {
+  const userOptions = useMemo(
+    () =>
+      users
+        .filter((item) => item.is_active)
+        .map((item) => ({ value: item.id, label: item.display_name })),
+    [users],
+  )
+
+  const assigneeOptions = useMemo(() => {
+    const members = selectedProject?.members ?? []
+    const options =
+      members.length > 0
+        ? members.map((item) => ({ value: item.id, label: item.display_name }))
+        : userOptions
+    if (editingIssue?.assignee && !options.some((item) => item.value === editingIssue.assignee?.id)) {
+      return [...options, { value: editingIssue.assignee.id, label: editingIssue.assignee.display_name }]
+    }
+    return options
+  }, [editingIssue, selectedProject, userOptions])
+
+  const openCreateProject = () => {
+    setEditingProject(null)
+    projectForm.resetFields()
+    projectForm.setFieldsValue({ member_ids: user?.id ? [user.id] : [] })
+    setProjectModalOpen(true)
+  }
+
+  const openEditProject = (project: ProjectOut) => {
+    setEditingProject(project)
+    projectForm.setFieldsValue({
+      key: project.key,
+      name: project.name,
+      description: project.description ?? undefined,
+      member_ids: (project.members ?? []).map((member) => member.id),
+    })
+    setProjectModalOpen(true)
+  }
+
+  const handleSaveProject = async (values: ProjectCreatePayload) => {
     setProjectSaving(true)
     try {
-      await projectApi.create(values)
-      message.success('项目创建成功')
+      const ownerId = editingProject?.owner?.id ?? user?.id
+      const memberIds = Array.from(new Set([...(values.member_ids ?? []), ...(ownerId ? [ownerId] : [])]))
+      if (editingProject) {
+        const res = await projectApi.update(editingProject.id, {
+          name: values.name,
+          description: values.description,
+          member_ids: memberIds,
+        })
+        message.success('项目已更新')
+        if (selectedProject?.id === res.data.id) {
+          setSelectedProject(res.data)
+        }
+      } else {
+        await projectApi.create({ ...values, member_ids: memberIds })
+        message.success('项目创建成功')
+      }
       setProjectModalOpen(false)
       projectForm.resetFields()
+      setEditingProject(null)
       loadProjects()
     } finally {
       setProjectSaving(false)
@@ -222,8 +277,9 @@ export default function ProjectsPage() {
     return grouped
   }, [issues])
 
-  if (selectedProject) {
-    return (
+  return (
+    <div>
+      {selectedProject ? (
       <div>
         <Space style={{ marginBottom: 16 }} align="center">
           <Button icon={<ArrowLeftOutlined />} onClick={() => setSelectedProject(null)}>
@@ -232,6 +288,18 @@ export default function ProjectsPage() {
           <Typography.Title level={4} style={{ margin: 0 }}>
             {selectedProject.name} ({selectedProject.key})
           </Typography.Title>
+          <Avatar.Group max={{ count: 6 }}>
+            {(selectedProject.members ?? []).map((member) => (
+              <Tooltip key={member.id} title={member.display_name}>
+                <Avatar src={member.avatar_url ?? undefined} icon={<UserOutlined />} />
+              </Tooltip>
+            ))}
+          </Avatar.Group>
+          {canManageProject(selectedProject) && (
+            <Button icon={<EditOutlined />} onClick={() => openEditProject(selectedProject)}>
+              项目成员
+            </Button>
+          )}
           <Button type="primary" icon={<PlusOutlined />} onClick={openCreateIssue}>
             新建工单
           </Button>
@@ -304,7 +372,11 @@ export default function ProjectsPage() {
                             </Typography.Text>
                           )}
                           <Tooltip title={issue.assignee?.display_name ?? '未分配'}>
-                            <Avatar size="small" icon={<UserOutlined />} />
+                            <Avatar
+                              size="small"
+                              src={issue.assignee?.avatar_url ?? undefined}
+                              icon={<UserOutlined />}
+                            />
                           </Tooltip>
                         </Space>
                       </Space>
@@ -346,9 +418,9 @@ export default function ProjectsPage() {
               <Select
                 allowClear
                 showSearch
-                placeholder="选择负责人"
+                placeholder="选择项目成员"
                 optionFilterProp="label"
-                options={users.map((u) => ({ value: u.id, label: u.display_name }))}
+                options={assigneeOptions}
               />
             </Form.Item>
             <Form.Item name="due_date" label="截止日期">
@@ -357,17 +429,14 @@ export default function ProjectsPage() {
           </Form>
         </Modal>
       </div>
-    )
-  }
-
-  return (
+      ) : (
     <div>
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
         <Typography.Title level={4} style={{ margin: 0 }}>
           Jira看板
         </Typography.Title>
         {canCreateProject && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setProjectModalOpen(true)}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreateProject}>
             创建项目
           </Button>
         )}
@@ -388,29 +457,37 @@ export default function ProjectsPage() {
               }
               extra={
                 canManageProject(project) ? (
-                  <Popconfirm
-                    title="确定删除该项目？"
-                    onConfirm={(e) => {
-                      e?.stopPropagation()
-                      handleDeleteProject(project)
-                    }}
-                  >
+                  <Space size={0} onClick={(e) => e.stopPropagation()}>
                     <Button
                       type="text"
-                      danger
-                      icon={<DeleteOutlined />}
-                      onClick={(e) => e.stopPropagation()}
+                      icon={<EditOutlined />}
+                      onClick={() => openEditProject(project)}
                     />
-                  </Popconfirm>
+                    <Popconfirm
+                      title="确定删除该项目？"
+                      onConfirm={() => handleDeleteProject(project)}
+                    >
+                      <Button type="text" danger icon={<DeleteOutlined />} />
+                    </Popconfirm>
+                  </Space>
                 ) : undefined
               }
             >
               <Typography.Paragraph type="secondary" ellipsis={{ rows: 2 }}>
                 {project.description || '暂无描述'}
               </Typography.Paragraph>
-              <Space>
-                <Tag>{project.member_count} 位成员</Tag>
-                <Tag>{project.issue_count} 个工单</Tag>
+              <Space direction="vertical" size={8}>
+                <Avatar.Group max={{ count: 5 }}>
+                  {(project.members ?? []).map((member) => (
+                    <Tooltip key={member.id} title={member.display_name}>
+                      <Avatar size="small" src={member.avatar_url ?? undefined} icon={<UserOutlined />} />
+                    </Tooltip>
+                  ))}
+                </Avatar.Group>
+                <Space>
+                  <Tag>{project.member_count} 位成员</Tag>
+                  <Tag>{project.issue_count} 个工单</Tag>
+                </Space>
               </Space>
             </Card>
           </Col>
@@ -421,37 +498,49 @@ export default function ProjectsPage() {
           </Col>
         )}
       </Row>
+    </div>
+      )}
 
       <Modal
-        title="创建项目"
+        title={editingProject ? '编辑项目成员' : '创建项目'}
         open={projectModalOpen}
-        onCancel={() => setProjectModalOpen(false)}
+        onCancel={() => {
+          setProjectModalOpen(false)
+          setEditingProject(null)
+        }}
         onOk={() => projectForm.submit()}
         confirmLoading={projectSaving}
         destroyOnHidden
       >
-        <Form form={projectForm} layout="vertical" onFinish={handleCreateProject}>
-          <Form.Item
-            name="key"
-            label="项目编号"
-            rules={[{ required: true, message: '请输入项目编号，如 OPS' }]}
-          >
-            <Input placeholder="例如 OPS" style={{ textTransform: 'uppercase' }} />
-          </Form.Item>
+        <Form form={projectForm} layout="vertical" onFinish={handleSaveProject}>
+          {!editingProject && (
+            <Form.Item
+              name="key"
+              label="项目编号"
+              rules={[{ required: true, message: '请输入项目编号，如 OPS' }]}
+            >
+              <Input placeholder="例如 OPS" style={{ textTransform: 'uppercase' }} />
+            </Form.Item>
+          )}
           <Form.Item name="name" label="项目名称" rules={[{ required: true, message: '请输入项目名称' }]}>
             <Input />
           </Form.Item>
           <Form.Item name="description" label="描述">
             <Input.TextArea rows={3} />
           </Form.Item>
-          <Form.Item name="member_ids" label="项目成员">
+          <Form.Item
+            name="member_ids"
+            label="项目成员"
+            rules={[{ required: true, message: '请选择项目成员' }]}
+            extra="项目负责人会始终保留在成员中。工单只能指派给这些成员。"
+          >
             <Select
               mode="multiple"
               allowClear
               showSearch
               placeholder="选择项目成员"
               optionFilterProp="label"
-              options={users.map((u) => ({ value: u.id, label: u.display_name }))}
+              options={userOptions}
             />
           </Form.Item>
         </Form>

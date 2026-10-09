@@ -69,6 +69,7 @@ export interface AnnouncementOut {
 export interface PersonBrief {
   id: number
   display_name: string
+  avatar_url?: string | null
 }
 
 export interface AnnualLeaveBalance {
@@ -120,6 +121,7 @@ export interface ProjectOut {
   name: string
   description?: string | null
   owner?: PersonBrief | null
+  members: PersonBrief[]
   member_count: number
   issue_count: number
 }

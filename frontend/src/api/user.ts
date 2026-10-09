@@ -31,7 +31,6 @@ export interface UserUpdatePayload {
 export interface ProfileUpdatePayload {
   display_name?: string
   phone?: string | null
-  avatar_url?: string | null
   gender?: string | null
 }
 
@@ -42,4 +41,9 @@ export const userApi = {
   update: (id: number, payload: UserUpdatePayload) => api.put<UserOut>(`/users/${id}`, payload),
   remove: (id: number) => api.delete<null>(`/users/${id}`),
   updateMyProfile: (payload: ProfileUpdatePayload) => api.put<UserOut>('/users/me/profile', payload),
+  uploadAvatar: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post<UserOut>('/users/me/avatar', formData)
+  },
 }
