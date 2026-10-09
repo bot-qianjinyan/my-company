@@ -20,6 +20,7 @@ import {
 import { LockOutlined, UploadOutlined, UserOutlined } from '@ant-design/icons'
 import { authApi } from '../../api/auth'
 import { userApi, type ProfileUpdatePayload } from '../../api/user'
+import AvatarCropModal from '../../components/AvatarCropModal'
 import { useAuthStore } from '../../store/auth'
 
 const GENDER_LABEL: Record<string, string> = { male: '男', female: '女' }
@@ -40,7 +41,10 @@ export default function ProfilePage() {
   const [pwdOpen, setPwdOpen] = useState(false)
   const [pwdForm] = Form.useForm<ChangePasswordForm>()
   const [pwdSaving, setPwdSaving] = useState(false)
-  const [avatarUploading, setAvatarUploading] = useState(false)
+  const [cropSource, setCropSource] = useState<File | null>(null)
+  const [cropOpen, setCropOpen] = useState(false)
+  const [pendingAvatar, setPendingAvatar] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
   useEffect(() => {
     if (user) {
@@ -57,6 +61,12 @@ export default function ProfilePage() {
   const handleSave = async (values: ProfileUpdatePayload) => {
     setSaving(true)
     try {
+      if (pendingAvatar) {
+        await userApi.uploadAvatar(pendingAvatar)
+        setPendingAvatar(null)
+        if (previewUrl) URL.revokeObjectURL(previewUrl)
+        setPreviewUrl(null)
+      }
       const res = await userApi.updateMyProfile(values)
       setUser(res.data)
       message.success('个人信息已更新')
@@ -65,15 +75,12 @@ export default function ProfilePage() {
     }
   }
 
-  const handleUploadAvatar = async (file: File) => {
-    setAvatarUploading(true)
-    try {
-      const res = await userApi.uploadAvatar(file)
-      setUser(res.data)
-      message.success('头像已更新')
-    } finally {
-      setAvatarUploading(false)
-    }
+  const handleCropConfirm = (file: File) => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    setPendingAvatar(file)
+    setPreviewUrl(URL.createObjectURL(file))
+    setCropOpen(false)
+    setCropSource(null)
   }
 
   const handleChangePassword = async (values: ChangePasswordForm) => {
@@ -95,19 +102,21 @@ export default function ProfilePage() {
         <Col span={8}>
           <Card>
             <Space orientation="vertical" align="center" style={{ width: '100%' }}>
-              <Avatar size={96} src={user.avatar_url ?? undefined} icon={<UserOutlined />} />
+              <Avatar size={96} src={previewUrl ?? user.avatar_url ?? undefined} icon={<UserOutlined />} />
               <Upload
                 accept=".jpg,.jpeg,.png,.webp,.gif"
                 showUploadList={false}
                 beforeUpload={(file) => {
-                  void handleUploadAvatar(file)
+                  setCropSource(file)
+                  setCropOpen(true)
                   return false
                 }}
               >
-                <Button icon={<UploadOutlined />} loading={avatarUploading}>
-                  上传头像
-                </Button>
+                <Button icon={<UploadOutlined />}>选择头像</Button>
               </Upload>
+              {pendingAvatar && (
+                <Typography.Text type="secondary">已框选头像区域，点击保存后生效</Typography.Text>
+              )}
               <Typography.Title level={5} style={{ marginBottom: 0 }}>
                 {user.display_name}
               </Typography.Title>
@@ -161,6 +170,16 @@ export default function ProfilePage() {
           </Card>
         </Col>
       </Row>
+
+      <AvatarCropModal
+        file={cropSource}
+        open={cropOpen}
+        onCancel={() => {
+          setCropOpen(false)
+          setCropSource(null)
+        }}
+        onConfirm={handleCropConfirm}
+      />
 
       <Modal
         title="修改密码"

@@ -7,7 +7,6 @@ __pycache__/
 pgdata/
 pglogs/
 pgsock/
-uploads/
 .git/
 .gitignore
 *.log
