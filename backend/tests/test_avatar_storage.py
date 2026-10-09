@@ -22,14 +22,17 @@ class AvatarStorageTests(unittest.TestCase):
 
     def test_already_square_crop_keeps_the_chosen_region(self) -> None:
         source = Image.new("RGB", (AVATAR_PX, AVATAR_PX), (255, 0, 0))
-        source.putpixel((0, 0), (0, 255, 0))
+        for x in range(48):
+            for y in range(48):
+                source.putpixel((x, y), (0, 255, 0))
         buffer = io.BytesIO()
-        source.save(buffer, format="JPEG")
+        source.save(buffer, format="PNG")
 
         rendered = render_avatar_bytes(buffer.getvalue())
         result = Image.open(io.BytesIO(rendered))
 
         self.assertEqual(result.size, (AVATAR_PX, AVATAR_PX))
-        red, green, blue = result.getpixel((0, 0))
-        self.assertGreater(green, red)
-        self.assertGreater(green, blue)
+        red, green, blue = result.getpixel((16, 16))
+        self.assertGreater(green, 200)
+        self.assertLess(red, 40)
+        self.assertLess(blue, 40)
