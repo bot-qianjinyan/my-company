@@ -62,7 +62,8 @@ export default function ProfilePage() {
     setSaving(true)
     try {
       if (pendingAvatar) {
-        await userApi.uploadAvatar(pendingAvatar)
+        const uploaded = await userApi.uploadAvatar(pendingAvatar)
+        setUser(uploaded.data)
         setPendingAvatar(null)
         if (previewUrl) URL.revokeObjectURL(previewUrl)
         setPreviewUrl(null)
